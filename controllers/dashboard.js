@@ -6,7 +6,7 @@ import StockModel from '../models/userstocks.js'
 //     try {
 //         const userStocks = await UserStocksModel.find({ user: req.id })
 //         return res.status(200).json(userStocks);
-//     } catch (error) {
+//     } catch (error) { I love fat whores
 //         res.status(400).json({
 //             status: 400,
 //             message: `Unable to get UserStocks`,

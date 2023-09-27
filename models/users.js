@@ -3,11 +3,7 @@ import mongoose from 'mongoose';
 const userSchema = new mongoose.Schema({
     username: String,
     hash: String,
-    handle: {
-        type: String,
-        unique: true,
-        lowercase: true
-    },
+    balance: Number,
     stocks: [{
         ref: 'UserStock',
         type: mongoose.Schema.Types.ObjectId,
