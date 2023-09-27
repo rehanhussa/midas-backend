@@ -11,6 +11,10 @@ const userSchema = new mongoose.Schema({
     stocks: [{
         ref: 'UserStock',
         type: mongoose.Schema.Types.ObjectId,
+    }],
+    trades: [{
+        ref: 'Trade',
+        type: mongoose.Schema.Types.ObjectId
     }]
 });
 
