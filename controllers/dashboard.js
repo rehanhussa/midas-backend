@@ -4,7 +4,7 @@ import User from '../models/users.js';
 export async function getUserStocks(req, res) {
     try {
         // Assuming req.user.id contains the authenticated user's ID
-        const userId = req.user.id;
+        const userId = req.body.user.id;
 
         // Fetch the user and populate the stocks
         const user = await User.findById(userId).populate('stocks');

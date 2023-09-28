@@ -5,8 +5,7 @@ import Trade from '../models/trades.js';
 // Fetch stock associated with a specific symbol
 export async function getStockBySymbol(req, res) {
     try {
-        const stockData = await getStockData(req.params.id);
-        const userStock = await UserStock.findOne({ symbol: req.params.id, user: req.user.id });
+        const userStock = await UserStock.findOne({ symbol: req.params.id, user: req.body.user.id });
 
         if (!stockData) {
             return res.status(404).json({
@@ -51,7 +50,7 @@ export async function purchaseStock(req, res) {
         const { symbol, quantity, stake } = req.body;
 
         // Find an existing stock for the user with the provided symbol
-        let stock = await UserStock.findOne({ symbol: symbol, user: req.user.id });
+        let stock = await UserStock.findOne({ symbol: symbol, user: req.body.user.id });
 
         if (stock) {
             // If the stock already exists for the user, update its quantity and stake
@@ -60,10 +59,10 @@ export async function purchaseStock(req, res) {
             await stock.save();
         } else {
             // If the stock doesn't exist for the user, create a new one
-            stock = new UserStock({ symbol, quantity, stake, user: req.user.id });
+            stock = new UserStock({ symbol, quantity, stake, user: req.body.user.id });
             await stock.save();
 
-            const user = await User.findById(req.user.id);
+            const user = await User.findById(req.body.user.id);
             user.stocks.push(stock);
             await user.save();
         }
@@ -91,7 +90,7 @@ export async function purchaseStock(req, res) {
 export async function sellSomeStocks(req, res) {
     try {
         const { quantity, stake } = req.body;
-        const stock = await UserStock.findOne({ symbol: req.params.id, _id: { $in: req.user.stocks } });
+        const stock = await UserStock.findOne({ symbol: req.params.id, _id: { $in: req.body.user.stocks } });
 
         if (!stock) {
             return res.status(404).json({
@@ -132,7 +131,7 @@ export async function sellSomeStocks(req, res) {
 // Allow a user to sell all shares of a specific stock
 export async function sellAllStocks(req, res) {
     try {
-        const stock = await UserStock.findOne({ symbol: req.params.id, _id: { $in: req.user.stocks } });
+        const stock = await UserStock.findOne({ symbol: req.params.id, _id: { $in: req.body.user.stocks } });
 
         if (!stock) {
             return res.status(404).json({
@@ -151,7 +150,7 @@ export async function sellAllStocks(req, res) {
         await trade.save();
 
         // Remove the stock for the user
-        await UserStock.findOneAndDelete({ symbol: req.params.id, _id: { $in: req.user.stocks } });
+        await UserStock.findOneAndDelete({ symbol: req.params.id, _id: { $in: req.body.user.stocks } });
 
         return res.status(200).json({
             status: 200,
