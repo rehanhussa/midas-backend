@@ -5,7 +5,7 @@ import Trade from '../models/trades.js';
 // Fetch stock associated with a specific symbol
 export async function getStockBySymbol(req, res) {
     try {
-        const userStock = await UserStock.findOne({ symbol: req.params.id, user: req.body.user.id });
+        const userStock = await UserStock.findOne({ symbol: req.params.id, user: id });
 
         if (!stockData) {
             return res.status(404).json({
@@ -47,10 +47,10 @@ export async function getStockBySymbol(req, res) {
 // Allow a user to add a stock to their portfolio
 export async function purchaseStock(req, res) {
     try {
-        const { symbol, quantity, stake } = req.body;
+        const { symbol, quantity, stake, id } = req.body;
 
         // Find an existing stock for the user with the provided symbol
-        let stock = await UserStock.findOne({ symbol: symbol, user: req.body.user.id });
+        let stock = await UserStock.findOne({ symbol: symbol, user: id });
 
         if (stock) {
             // If the stock already exists for the user, update its quantity and stake
@@ -59,10 +59,10 @@ export async function purchaseStock(req, res) {
             await stock.save();
         } else {
             // If the stock doesn't exist for the user, create a new one
-            stock = new UserStock({ symbol, quantity, stake, user: req.body.user.id });
+            stock = new UserStock({ symbol, quantity, stake, user: id });
             await stock.save();
 
-            const user = await User.findById(req.body.user.id);
+            const user = await User.findById(id);
             user.stocks.push(stock);
             await user.save();
         }

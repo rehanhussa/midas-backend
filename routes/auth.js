@@ -89,9 +89,10 @@ router.post('/signin', async (req, res) => {
 
     const token = jwt.sign(data, SECRET_KEY)
 
+    console.log('BACKEND USER ID', user._id)
     return res.status(200).json({
       status: 200,
-      message: `Successfully signed in @${user.handle}`,
+      message: `Successfully signed in ${user.handle}, with ID ${user._id}`,
       token: token,
       userId: user._id
     })
