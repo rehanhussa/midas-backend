@@ -94,7 +94,8 @@ router.post('/signin', async (req, res) => {
       status: 200,
       message: `Successfully signed in ${user.handle}, with ID ${user._id}`,
       token: token,
-      userId: user._id
+      userId: user._id,
+      userBalance: user.balance
     })
   
   } catch (error) {

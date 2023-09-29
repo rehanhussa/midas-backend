@@ -2,82 +2,51 @@ import User from '../models/users.js';
 import UserStock from '../models/userstocks.js';
 import Trade from '../models/trades.js'; 
 
-// Fetch stock associated with a specific symbol
-export async function getStockBySymbol(req, res) {
-    try {
-        const userStock = await UserStock.findOne({ symbol: req.params.id, user: id });
+export async function getUserById(req, res) {
+    try {        
+        const userId = req.id;
+        const symbol = req.params.id;
 
-        if (!stockData) {
-            return res.status(404).json({
-                status: 404,
-                message: "Stock data not available."
-            });
+        const user = await User.findById(userId).populate('stocks');
+        
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
         }
 
-        const responseData = {
-            stockInfo: stockData
-        };
-
-        if (userStock) {
-            const marketValue = stockData.currentPrice * userStock.quantity;
-            const todayReturn = (stockData.currentPrice - stockData.openPrice) * userStock.quantity; 
-            const averageCost = userStock.stake / userStock.quantity;
-            const totalReturn = (stockData.currentPrice - averageCost) * userStock.quantity;
-
-            responseData.userStock = {
-                marketValue: marketValue,
-                todayReturn: todayReturn,
-                totalReturn: totalReturn,
-                averageCost: averageCost,
-                numberOfShares: userStock.quantity
-            };
-        }
-
-        return res.status(200).json(responseData);
-
+        return res.status(200).json(user);
     } catch (error) {
-        res.status(404).json({
-            status: 404,
-            message: error.message
+        console.error("Error fetching user's stock:", error);
+        res.status(500).json({
+            status: 500,
+            message: "Internal Server Error"
         });
     }
 }
 
 
 // Allow a user to add a stock to their portfolio
-export async function purchaseStock(req, res) {
+export async function createStock(req, res) {
+    console.log('Hello')
     try {
         const { symbol, quantity, stake, id } = req.body;
+        const balance = req.body.userBalance;
 
-        // Find an existing stock for the user with the provided symbol
-        let stock = await UserStock.findOne({ symbol: symbol, user: id });
+        const user = await User.findOne({ _id: id });
 
-        if (stock) {
-            // If the stock already exists for the user, update its quantity and stake
-            stock.quantity += quantity;
-            stock.stake += stake;
-            await stock.save();
-        } else {
-            // If the stock doesn't exist for the user, create a new one
-            stock = new UserStock({ symbol, quantity, stake, user: id });
-            await stock.save();
-
-            const user = await User.findById(id);
+        console.log('STOCKS', user.stocks)
+        console.log('LENGTH', user.stocks.length)
+        
+        if (user.stocks.length === 0) {
+            console.log('Is this even getting hit')
+            const stock = new UserStock({symbol, quantity, stake, user: id});
+            const receipt = new Trade({symbol, quantity, stake, type: 1 })
             user.stocks.push(stock);
+            user.trades.push(receipt);
+            user.balance = balance;
+            await receipt.save();
+            await stock.save();
             await user.save();
         }
-
-        // Record the purchase transaction
-        const trade = new Trade({
-            symbol,
-            amount: quantity,
-            cost: stake,
-            type: 'BUY'
-        });
-        await trade.save();
-
-        return res.status(200).json(stock);
-
     } catch (error) {
         res.status(404).json({
             status: 404,
@@ -87,39 +56,49 @@ export async function purchaseStock(req, res) {
 }
 
 // Allow a user to sell a specific quantity of a stock
-export async function sellSomeStocks(req, res) {
+export async function editStock(req, res) {
     try {
-        const { quantity, stake } = req.body;
-        const stock = await UserStock.findOne({ symbol: req.params.id, _id: { $in: req.body.user.stocks } });
+        let { symbol, quantity, stake, id, balance, type } = req.body;
 
-        if (!stock) {
+        let user = await User.findById(id).populate('stocks');
+        
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        let targetStock = null;
+        for (let stock of user.stocks) {
+            if (stock.symbol === symbol) {
+                targetStock = stock;
+                break;
+            }
+        }
+
+        if (!targetStock) {
             return res.status(404).json({
                 status: 404,
                 message: "Stock not found for the user."
             });
         }
-        if (stock.quantity < quantity) {
-            return res.status(400).json({
-                status: 400,
-                message: "Not enough stock to sell"
-            });
+
+        if (!type) {
+            const receipt = new Trade({symbol, quantity, stake, type: 0 })
+            user.trades.push(receipt);
+            await receipt.save();
+            targetStock.quantity -= quantity;
+            targetStock.stake -= stake;
+            balance += stake;
+        } else {
+            const receipt = new Trade({symbol, quantity, stake, type: 1 })
+            user.trades.push(receipt);
+            await receipt.save();
+            targetStock.quantity += quantity;
+            targetStock.stake += stake;
+            balance -= stake;
         }
-
-        stock.quantity -= quantity;
-        stock.stake -= stake;
-        await stock.save();
-
-        // Record the sell transaction
-        const trade = new Trade({
-            symbol: req.params.id,
-            amount: quantity,
-            cost: stake,
-            type: 'SELL'
-        });
-        await trade.save();
-
-        return res.status(200).json(stock);
-
+        await user.save();
+        await targetStock.save();
+        return res.status(200).json(targetStock);
     } catch (error) {
         res.status(404).json({
             status: 404,
@@ -128,39 +107,43 @@ export async function sellSomeStocks(req, res) {
     }
 }
 
-// Allow a user to sell all shares of a specific stock
-export async function sellAllStocks(req, res) {
-    try {
-        const stock = await UserStock.findOne({ symbol: req.params.id, _id: { $in: req.body.user.stocks } });
 
-        if (!stock) {
-            return res.status(404).json({
-                status: 404,
-                message: "Stock not found for the user."
-            });
+// Allow a user to sell all shares of a specific stock
+export async function deleteStock(req, res) {
+    try {
+        let { symbol, quantity, stake, id, balance } = req.body;
+
+        let user = await User.findById(id).populate('stocks');
+        
+        if (!user) {
+            console.log('NO USERS')
+            return res.status(404).json({ message: "User not found" });
         }
 
-        // Record the sell transaction for all shares
-        const trade = new Trade({
-            symbol: req.params.id,
-            amount: stock.quantity,
-            cost: stock.stake,
-            type: 'SELL'
-        });
-        await trade.save();
+        // Find the stock with the matching symbol
+        const targetStock = user.stocks.find(stock => stock.symbol === symbol);
 
-        // Remove the stock for the user
-        await UserStock.findOneAndDelete({ symbol: req.params.id, _id: { $in: req.body.user.stocks } });
+        if (!targetStock) {
+            return res.status(404).json({ message: "Stock not found for the user." });
+        }
 
-        return res.status(200).json({
-            status: 200,
-            message: "Stock sold successfully"
-        });
+        // console.log('THIS IS THE TARGETSTOCK ID', targetStock._id)
 
+        // Remove the stock from the UserStock schema
+        await UserStock.deleteOne({ _id: targetStock._id });
+
+        // console.log('DO WE HIT THIS')
+
+        // Update the user's stocks array by filtering out the target stock
+        user.stocks = user.stocks.filter(stock => stock.symbol !== symbol);
+
+        balance += stake;
+        const receipt = new Trade({symbol, quantity, stake, type: 0 })
+        user.trades.push(receipt);
+        await receipt.save();
+        await user.save();
+        return res.status(200).json({ message: "Stock DELETED successfully" });
     } catch (error) {
-        res.status(404).json({
-            status: 404,
-            message: error.message
-        });
+        return res.status(404).json({ message: error.message });
     }
 }
