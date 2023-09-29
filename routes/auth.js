@@ -68,14 +68,16 @@ router.post('/signin', async (req, res) => {
   try {
     const { username, password } = req.body
     const user = await User.findOne({ handle: username })
-    const hash = user.hash
 
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const hash = user.hash
     const result = await bcrypt.compare(password, hash)
+
     if (!result) {
-      throw new Error({ 
-        messsage: "Incorrect password", 
-        status: 401 
-      })
+      throw new Error("Incorrect password")
     }
 
     const data = {
@@ -83,14 +85,19 @@ router.post('/signin', async (req, res) => {
       handle: user.handle,
       exp: getExpiration(),
     }
+// SEND USER ID TO FRONT END TO STORE IN LOCAL STORAGE
 
     const token = jwt.sign(data, SECRET_KEY)
 
+    console.log('BACKEND USER ID', user._id)
     return res.status(200).json({
       status: 200,
-      message: `Successfully signed in @${user.handle}`,
-      token: token
+      message: `Successfully signed in ${user.handle}, with ID ${user._id}`,
+      token: token,
+      userId: user._id,
+      userBalance: user.balance
     })
+  
   } catch (error) {
     if (error.status === 401) {
       res.status(401).json({

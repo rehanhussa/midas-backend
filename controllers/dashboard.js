@@ -1,13 +1,23 @@
 import User from '../models/users.js'; 
+import UserStocks from '../models/userstocks.js';
 
 // Fetch all stocks associated with the authenticated user
 export async function getUserStocks(req, res) {
     try {
+        console.log('received data:', req.id)
         // Assuming req.user.id contains the authenticated user's ID
-        const userId = req.user.id;
+        const userId = req.id;
 
         // Fetch the user and populate the stocks
         const user = await User.findById(userId).populate('stocks');
+
+        // console.log(user)
+
+        const allStocks = user.stocks.map(async (stock) => {
+            await UserStocks.findById(stock).populate('stocks');
+        })
+
+        console.log(allStocks)
 
         // If user doesn't exist or stocks are not present
         if (!user || !user.stocks) {

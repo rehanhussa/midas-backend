@@ -3,7 +3,7 @@ import User from '../models/users.js';  // Assuming this is the path to your use
 export async function getInvestmentData(req, res) {
     try {
         // Assuming req.user.id contains the authenticated user's ID
-        const userId = req.user.id;
+        const userId = req.body.user.id;
 
         // Fetch the user, populate stocks and trades
         const user = await User.findById(userId)
