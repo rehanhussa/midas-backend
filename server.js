@@ -20,7 +20,7 @@ app.use(morgan('dev'))
 
 app.use('/api/auth', authRouter)
 app.use('/api/dashboard', dashboardRouter)
-app.use('/api/investment', investmentRouter)
+app.use('/api/investments', investmentRouter)
 app.use('/api/stocks', stocksRouter)
 
 app.listen(PORT, () => {
