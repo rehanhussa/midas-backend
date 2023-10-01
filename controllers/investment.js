@@ -2,8 +2,10 @@ import User from '../models/users.js';
 
 export async function getUserTrades(req, res) {
     try {
-        console.log('received userid right over heer:', req.id)
-        const userId = req.id;
+        console.log("Hello")
+        console.log(req.query.id)
+        console.log('received userid right over heer:', req.query.id)
+        const userId = req.query.id;
 
         const user = await User.findById(userId).populate('trades');
 
