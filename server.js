@@ -18,10 +18,11 @@ app.use(cors())
 app.use(express.json())
 app.use(morgan('dev'))
 
+app.use('/api/stocks', stocksRouter)
 app.use('/api/auth', authRouter)
 app.use('/api/dashboard', dashboardRouter)
 app.use('/api/investments', investmentRouter)
-app.use('/api/stocks', stocksRouter)
+
 
 app.listen(PORT, () => {
     console.log(`Server started at http://localhost:${PORT}`);

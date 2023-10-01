@@ -4,9 +4,10 @@ import Trade from '../models/trades.js';
 
 export async function getUserById(req, res) {
     try {        
-        const userId = req.id;
+        const userId = req.params.id;
         const symbol = req.params.id;
-
+        console.log("HERE")
+        console.log(userId)
         const user = await User.findById(userId).populate('stocks');
         
         if (!user) {
@@ -46,6 +47,8 @@ export async function createStock(req, res) {
             await receipt.save();
             await stock.save();
             await user.save();
+            console.log(user)
+            return res.json(user);  
         }
     } catch (error) {
         res.status(404).json({
@@ -59,6 +62,7 @@ export async function createStock(req, res) {
 export async function editStock(req, res) {
     try {
         let { symbol, quantity, stake, id, balance, type } = req.body;
+        console.log(req.body)
 
         let user = await User.findById(id).populate('stocks');
         
@@ -80,7 +84,7 @@ export async function editStock(req, res) {
                 message: "Stock not found for the user."
             });
         }
-
+        console.log(balance)
         if (!type) {
             const receipt = new Trade({symbol, quantity, stake, type: 0 })
             user.trades.push(receipt);
@@ -88,6 +92,7 @@ export async function editStock(req, res) {
             targetStock.quantity -= quantity;
             targetStock.stake -= stake;
             balance += stake;
+            console.log(balance)
         } else {
             const receipt = new Trade({symbol, quantity, stake, type: 1 })
             user.trades.push(receipt);
@@ -95,10 +100,13 @@ export async function editStock(req, res) {
             targetStock.quantity += quantity;
             targetStock.stake += stake;
             balance -= stake;
+            console.log(balance)
         }
+        user.balance = balance;
+
         await user.save();
         await targetStock.save();
-        return res.status(200).json(targetStock);
+        return res.status(200).json(user);
     } catch (error) {
         res.status(404).json({
             status: 404,
